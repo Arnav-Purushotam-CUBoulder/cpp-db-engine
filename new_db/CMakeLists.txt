@@ -1,0 +1,63 @@
+cmake_minimum_required(VERSION 3.12)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+include(GNUInstallDirs)
+
+set(HEADERS 
+	include/new_db.h
+	include/database.h
+	include/hashes.h
+	include/query.h
+	include/is_container.h
+	include/types.h
+	include/extensions/extdatabase.h
+	include/extensions/extquery.h
+	include/extensions/highwayhash.h
+)
+
+add_library(new_db 
+	${HEADERS}
+	src/database.cpp
+	src/filekeyvaluestore.cpp
+	src/new_db.cpp
+	src/hashes.cpp
+	src/highwayhash.cpp
+	src/memorykeyvaluestore.cpp
+	src/query.cpp
+	src/types.cpp
+)
+set_target_properties(new_db PROPERTIES PUBLIC_HEADER "${HEADERS}")
+
+# NB: this assumes google's highwayhash is available as a sub-module of this repo..
+include_directories(${new_db_SOURCE_DIR}/highwayhash)
+# use this version if you have highwayhash as a peer module outside this repo..
+#include_directories(${groundupdb_SOURCE_DIR}/../highwayhash)
+
+target_include_directories(new_db 
+	PUBLIC 
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+	$<INSTALL_INTERFACE:include>
+)
+
+target_compile_features(new_db PRIVATE cxx_std_17)
+
+# NB: This is here to ensure binaries that link us also link stdc++fs for non-Apple targets
+# https://github.com/OpenRCT2/OpenRCT2/pull/10522
+if(NOT (APPLE OR MSVC) )
+target_link_libraries(new_db PRIVATE stdc++fs)
+endif(NOT (APPLE OR MSVC) )
+
+install(TARGETS new_db 
+    EXPORT new_db
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}  
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} 
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/new_db
+)
+
+install(EXPORT new_db 
+	NAMESPACE new_db::
+	DESTINATION ${CMAKE_INSTALL_LIBDIR}/new_db
+)
